@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from distutils.command.check import check
 from http.client import responses
 
@@ -7,6 +9,10 @@ import time                         # 시간 관련 기능
 import re                           # 정규식(가격, 숫자 추출)
 import pymysql                      # MySQL DB 연동
 from datetime import datetime       # 날짜 시간 처리
+
+# 초기 크롤러 파일 ( 지금은 안씀 )
+
+
 
 # ===================== [DB 설정] =======================
 DB_CONFIG = {
@@ -168,15 +174,30 @@ def crawl_dealbada():
         response = requests.get(url, headers=headers, timeout=10)   # html 요청
         response.encoding = 'utf-8'                                 # 응답 html 인코딩 지정
         soup = BeautifulSoup(response.text, 'html.parser')  #  HTML 문자열을 BeautifulSoup 객체로 파싱
-        rows = soup.select('table tr')                               # 게시글이 들어있는 테이블의 모든 행 선택
+        rows = soup.select('table tbody tr')                        # 게시글이 들어있는 테이블의 모든 행 선택
 
         for row in rows[:20]:  # 상위 20개만
-            title_link = row.select_one('td a[href*="wr_id"]')
+            # 제목 링크 찾기
+            title_link = row.select_one('td.td_subject a[href*="wr_id"]')
             if not title_link: continue
 
-            title = title_link.get_text(strip=True)
-            href = title_link.get('href')
+            # 이미지 url 찾기
+            img_tag = row.select_one('img')
+            img_url = ''
+            if img_tag:
+                src_val = img_tag.get('src')
+                if src_val:
+                    if src_val.startswith('//'):
+                        img_url = 'https:' + src_val
+                    elif src_val.startswith('/'):
+                        img_url = 'https://www.dealbada.com' + src_val
+                    else:
+                        img_url = src_val
 
+            title = title_link.get_text(strip=True)
+            title = re.sub(r'\s*\[d+\]$', '', title)    # 댓글수 제거
+
+            href = title_link.get('href')
             if href.startswith('//'):
                 detail_url = 'https:' + href
             elif href.startswith('/'):
@@ -185,16 +206,19 @@ def crawl_dealbada():
                 detail_url = href
 
             # 날짜
-            date_td = row.select_one('td:nth-last-child(3)')
+            date_td = row.select_one('td.td_date')
+            if not date_td:
+                date_td = row.select_one('td:nth-last-child(2)')
+
             date_str = date_td.get_text(strip=True) if date_td else ""
 
             deals.append({
                 'title': title,
                 'url': detail_url,
-                'price': extract_price(title),  # 딜바다는 제목 의존
+                'price': extract_price(title),
                 'site': '딜바다',
                 'likes': 0,
-                'img': '',
+                'img': img_url,
                 'posted_at': parse_date(date_str)
             })
     except Exception as e:

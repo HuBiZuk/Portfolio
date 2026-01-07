@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}
+    나의 매칭 핫딜 - My Hotdeal
+{% endblock %}
+
+{% block content %}
+    <h4 class="mb-4"><i class="fas fa-bell text-primary"></i> 나의 매칭 핫딜 목록</h4>
+
+    <!-- [수정] row-cols-lg-4 추가 -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        {% if deals %}
+            {% for deal in deals %}
+            <div class="col">
+                <div class="card h-100">
+                    <div style="height: 150px; overflow: hidden; background-color: #eee;">
+                        {% if deal.img %}
+                            <img src="{{ deal.img }}" class="deal-img" alt="{{ deal.title }}">
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                <i class="fas fa-image fa-3x"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <span class="site-badge
+                                {% if deal.site == '뽐뿌' %}site-ppomppu
+                                {% elif deal.site == '딜바다' %}site-dealbada
+                                {% elif deal.site == '퀘이사존' %}site-quasarzone
+                                {% endif %}">
+                                {{ deal.site }}
+                            </span>
+                            <small class="text-muted float-end">{{ deal.posted_at.strftime('%m-%d %H:%M') if deal.posted_at else '' }}</small>
+                        </div>
+                        <h6 class="card-title">
+                            <a href="{{ deal.url }}" target="_blank" class="text-decoration-none text-dark stretched-link">
+                                {{ deal.title }}
+                            </a>
+                        </h6>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-danger">
+                                {% if deal.price > 0 %}
+                                    {{ "{:,}".format(deal.price) }}원
+                                {% else %}
+                                    가격정보 없음
+                                {% endif %}
+                            </span>
+                            <small class="text-muted"><i class="far fa-thumbs-up"></i> {{ deal.likes }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-secondary text-center" role="alert">
+                    아직 매칭된 핫딜이 없습니다.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -6,6 +6,6 @@ class Config:
     # DB 설정
     DB_HOST = 'localhost'
     DB_USER = 'root'
-    DB_PASSWORD = '12345'
+    DB_PASSWORD = 'MY_PASSWORD'
     DB_NAME = 'my_hotdeal'
     DB_CHARSET = 'utf8mb4'

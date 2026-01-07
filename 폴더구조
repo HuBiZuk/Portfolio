@@ -11,7 +11,7 @@ C:/MyProject/Portfolio/
 │   ├── css/
 │   └── img/
 │
-├── hotdeal/                # [Project 1] 핫딜 알리미 (현재 작업 중)
+├── my_hotdeal/                # [Project 1] 핫딜 알리미 (현재 작업 중)
 │   ├── __init__.py         # 패키지 설정 (Blueprint 등록)
 │   ├── routes.py           # 핫딜 관련 페이지 접속 경로 (URL) 관리
 │   ├── crawler.py          # (기존 파일 이동) 크롤링 로직
@@ -25,3 +25,7 @@ C:/MyProject/Portfolio/
     ├── detector.py         # 객체 탐지 로직 (YOLO 등)
     └── templates/          # AI 프로젝트 전용 HTML
         └── monitor.html    # CCTV 모니터링 화면
+
+# git remote add origin https://github.com/HuBiZuk/Portfolio.git
+
+# flask 구조 : 개발자가 자유롭게 정하는 구조

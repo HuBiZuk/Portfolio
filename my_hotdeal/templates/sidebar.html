@@ -1,0 +1,54 @@
+<div class="sidebar sticky-top" style="top: 20px;">
+    {% if current_user.is_authenticated %}
+        <!-- 로그인 후 화면 -->
+        <div class="text-center mb-4">
+            <h5>환영합니다!</h5>
+            <p class="text-muted"><strong>{{ current_user.name }}</strong> 님</p>
+            <a href="{{ url_for('my_hotdeal.logout') }}" class="btn btn-outline-danger btn-sm w-100">로그아웃</a>
+        </div>
+
+        <hr>
+
+        <!-- 키워드 관리 -->
+        <div class="mb-3">
+            <h6><i class="fas fa-tag text-primary"></i> 나의 알림 키워드</h6>
+            <div class="d-flex flex-wrap mb-3">
+                {% if keywords %}
+                    {% for kw in keywords %}
+                        <span class="badge bg-light text-dark border keyword-badge">
+                            {{ kw.keyword }}
+                            <a href="{{ url_for('my_hotdeal.delete_keyword', keyword_id=kw.keyword_id) }}" class="keyword-delete" onclick="return confirm('삭제하시겠습니까?');">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </span>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small">등록된 키워드가 없습니다.</p>
+                {% endif %}
+            </div>
+
+            <form action="{{ url_for('my_hotdeal.add_keyword') }}" method="POST" class="d-flex">
+                {{ keyword_form.hidden_tag() }}
+                <input type="text" name="keyword" class="form-control form-control-sm me-2" placeholder="키워드 입력" required>
+                <button type="submit" class="btn btn-primary btn-sm">추가</button>
+            </form>
+        </div>
+
+    {% else %}
+        <!-- 로그인 전 화면 -->
+        <h5 class="mb-3 text-center">로그인</h5>
+        <form action="{{ url_for('my_hotdeal.login') }}" method="POST">
+            {{ login_form.hidden_tag() }}
+            <div class="mb-3">
+                <input type="text" name="user_id" class="form-control" placeholder="아이디" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="비밀번호" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-2">로그인</button>
+        </form>
+        <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#registerModal">
+            회원가입
+        </button>
+    {% endif %}
+</div>

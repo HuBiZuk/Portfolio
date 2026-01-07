@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Hotdeal - 나만의 핫딜 알림</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (아이콘) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .deal-img { height: 180px; object-fit: cover; width: 100%; border-top-left-radius: 0.375rem; border-top-right-radius: 0.375rem; }
+        .site-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; color: white; }
+        .site-ppomppu { background-color: #f44336; }
+        .site-dealbada { background-color: #2196f3; }
+        .site-quasarzone { background-color: #ff9800; }
+        .site-naver { background-color: #4caf50; }
+        .sidebar { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .keyword-badge { font-size: 0.9rem; margin: 3px; cursor: default; }
+        .keyword-delete { cursor: pointer; margin-left: 5px; color: #ff6b6b; }
+        .keyword-delete:hover { color: #c0392b; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('my_hotdeal.index') }}"><i class="fas fa-fire text-warning"></i> My Hotdeal</a>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- 좌측 사이드바 (로그인 & 키워드) -->
+        <div class="col-md-3 mb-4">
+            <div class="sidebar sticky-top" style="top: 20px;">
+                {% if current_user.is_authenticated %}
+                    <!-- 로그인 후 화면 -->
+                    <div class="text-center mb-4">
+                        <h5>환영합니다!</h5>
+                        <p class="text-muted"><strong>{{ current_user.name }}</strong> 님</p>
+                        <a href="{{ url_for('my_hotdeal.logout') }}" class="btn btn-outline-danger btn-sm w-100">로그아웃</a>
+                    </div>
+
+                    <hr>
+
+                    <!-- 키워드 관리 -->
+                    <div class="mb-3">
+                        <h6><i class="fas fa-tag text-primary"></i> 나의 알림 키워드</h6>
+                        <div class="d-flex flex-wrap mb-3">
+                            {% if keywords %}
+                                {% for kw in keywords %}
+                                    <span class="badge bg-light text-dark border keyword-badge">
+                                        {{ kw.keyword }}
+                                        <a href="{{ url_for('my_hotdeal.delete_keyword', keyword_id=kw.keyword_id) }}" class="keyword-delete" onclick="return confirm('삭제하시겠습니까?');">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">등록된 키워드가 없습니다.</p>
+                            {% endif %}
+                        </div>
+
+                        <form action="{{ url_for('my_hotdeal.add_keyword') }}" method="POST" class="d-flex">
+                            {{ keyword_form.hidden_tag() }}
+                            <input type="text" name="keyword" class="form-control form-control-sm me-2" placeholder="키워드 입력" required>
+                            <button type="submit" class="btn btn-primary btn-sm">추가</button>
+                        </form>
+                    </div>
+
+                {% else %}
+                    <!-- 로그인 전 화면 -->
+                    <h5 class="mb-3 text-center">로그인</h5>
+                    <form action="{{ url_for('my_hotdeal.login') }}" method="POST">
+                        {{ login_form.hidden_tag() }}
+                        <div class="mb-3">
+                            <input type="text" name="user_id" class="form-control" placeholder="아이디" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="password" name="password" class="form-control" placeholder="비밀번호" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">로그인</button>
+                    </form>
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#registerModal">
+                        회원가입
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 우측 컨텐츠 (핫딜 목록) -->
+        <div class="col-md-9">
+            <h4 class="mb-4"><i class="fas fa-list"></i> 실시간 핫딜 목록</h4>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for deal in deals %}
+                <div class="col">
+                    <div class="card h-100">
+                        <!-- 이미지 -->
+                        <div style="height: 180px; overflow: hidden; background-color: #eee;">
+                            {% if deal.img %}
+                                <img src="{{ deal.img }}" class="deal-img" alt="{{ deal.title }}">
+                            {% else %}
+                                <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <!-- 사이트 뱃지 -->
+                            <div class="mb-2">
+                                <span class="site-badge
+                                    {% if deal.site == '뽐뿌' %}site-ppomppu
+                                    {% elif deal.site == '딜바다' %}site-dealbada
+                                    {% elif deal.site == '퀘이사존' %}site-quasarzone
+                                    {% else %}site-naver{% endif %}">
+                                    {{ deal.site }}
+                                </span>
+                                <small class="text-muted float-end">{{ deal.posted_at.strftime('%m-%d %H:%M') if deal.posted_at else '' }}</small>
+                            </div>
+
+                            <!-- 제목 -->
+                            <h6 class="card-title text-truncate-2" style="height: 2.8em; overflow: hidden;">
+                                <a href="{{ deal.url }}" target="_blank" class="text-decoration-none text-dark stretched-link">
+                                    {{ deal.title }}
+                                </a>
+                            </h6>
+
+                            <!-- 가격 & 추천 -->
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-danger">
+                                    {% if deal.price > 0 %}
+                                        {{ "{:,}".format(deal.price) }}원
+                                    {% else %}
+                                        가격정보 없음
+                                    {% endif %}
+                                </span>
+                                <small class="text-muted"><i class="far fa-thumbs-up"></i> {{ deal.likes }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- 페이지네이션 -->
+            <nav aria-label="Page navigation" class="mt-5 mb-5">
+                <ul class="pagination justify-content-center">
+                    <!-- 이전 -->
+                    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('my_hotdeal.index', page=current_page-1) }}">이전</a>
+                    </li>
+
+                    <!-- 페이지 번호 (최대 5개만 표시하도록 로직 개선 가능) -->
+                    {% for p in range(1, last_page + 1) %}
+                        {% if p >= current_page - 2 and p <= current_page + 2 %}
+                            <li class="page-item {% if p == current_page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('my_hotdeal.index', page=p) }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- 다음 -->
+                    <li class="page-item {% if current_page == last_page %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('my_hotdeal.index', page=current_page+1) }}">다음</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- 회원가입 모달 -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">회원가입</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('my_hotdeal.register') }}" method="POST">
+                    {{ register_form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">아이디</label>
+                        <input type="text" name="user_id" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">비밀번호</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">비밀번호 확인</label>
+                        <input type="password" name="confirm_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">이름</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">이메일</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">전화번호</label>
+                        <input type="text" name="phone" class="form-control" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">가입하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<h4 class="mb-4"><i class="fas fa-list"></i> 실시간 핫딜 목록</h4>
+
+<!-- [수정] row-cols-lg-4 추가 -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+    {% for deal in deals %}
+    <div class="col">
+        <div class="card h-100">
+            <!-- 이미지 -->
+            <div style="height: 150px; overflow: hidden; background-color: #eee;">
+                {% if deal.img %}
+                    <img src="{{ deal.img }}" class="deal-img" alt="{{ deal.title }}">
+                {% else %}
+                    <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                        <i class="fas fa-image fa-3x"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card-body d-flex flex-column">
+                <!-- 사이트 뱃지 -->
+                <div class="mb-2">
+                    <span class="site-badge
+                        {% if deal.site == '뽐뿌' %}site-ppomppu
+                        {% elif deal.site == '딜바다' %}site-dealbada
+                        {% elif deal.site == '퀘이사존' %}site-quasarzone
+                        {% else %}site-naver{% endif %}">
+                        {{ deal.site }}
+                    </span>
+                    <small class="text-muted float-end">{{ deal.posted_at.strftime('%m-%d %H:%M') if deal.posted_at else '' }}</small>
+                </div>
+
+                <!-- 제목 -->
+                <h6 class="card-title">
+                    <a href="{{ deal.url }}" target="_blank" class="text-decoration-none text-dark stretched-link">
+                        {{ deal.title }}
+                    </a>
+                </h6>
+
+                <!-- 가격 & 추천 -->
+                <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-danger">
+                        {% if deal.price > 0 %}
+                            {{ "{:,}".format(deal.price) }}원
+                        {% else %}
+                            가격정보 없음
+                        {% endif %}
+                    </span>
+                    <small class="text-muted"><i class="far fa-thumbs-up"></i> {{ deal.likes }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 페이지네이션 -->
+<nav aria-label="Page navigation" class="mt-5 mb-5">
+    <ul class="pagination justify-content-center">
+        <!-- 이전 -->
+        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('my_hotdeal.index', page=current_page-1) }}">이전</a>
+        </li>
+
+        <!-- 페이지 번호 -->
+        {% for p in range(1, last_page + 1) %}
+            {% if p >= current_page - 2 and p <= current_page + 2 %}
+                <li class="page-item {% if p == current_page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('my_hotdeal.index', page=p) }}">{{ p }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        <!-- 다음 -->
+        <li class="page-item {% if current_page == last_page %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('my_hotdeal.index', page=current_page+1) }}">다음</a>
+        </li>
+    </ul>
+</nav>

@@ -1,0 +1,25 @@
+# --- Python 기본 ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- 가상환경 (Virtual Environment) ---
+# 가상환경 폴더 이름에 따라 다를 수 있지만 보통 아래 이름들을 씁니다.
+venv/
+env/
+.venv/
+
+# --- IDE 설정 (나만의 설정이므로 공유 X) ---
+.idea/
+.vscode/
+*.swp
+
+# --- 환경변수 및 비밀정보 (중요!) ---
+.env
+# config.py에 비밀번호가 있음 git에 올리면 안됨
+# config_sample.py 같은 가짜 파일을 만들어 올림
+config.py
+
+# --- OS 관련 ---
+.DS_Store
+Thumbs.db
