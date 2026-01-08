@@ -1,10 +1,11 @@
-from flask import render_template, request, redirect, url_for, flash, g
+from flask import render_template, request, redirect, url_for, flash, g, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from . import hotdeal_bp
 from .database import get_db_connection
 from .models import User
-from .forms import LoginForm, RegisterForm, KeywordForm
+from .forms import LoginForm, RegisterForm, KeywordForm, EditProfileForm
 
 @hotdeal_bp.before_request
 def before_request_hook():
@@ -43,11 +44,11 @@ def index():
     try:
         with conn.cursor() as cursor:
             # 전체 딜 개수
-            cursor.execute("SELECT COUNT(*) FROM deal_summary")
+            cursor.execute("SELECT COUNT(*) FROM deal_summary where is_deleted = FALSE")
             total = cursor.fetchone()['COUNT(*)']
 
             # 딜 목록 조회
-            sql = "SELECT * FROM deal_summary ORDER BY posted_at DESC LIMIT %s OFFSET %s"
+            sql = "SELECT * FROM deal_summary where is_deleted = FALSE ORDER BY posted_at DESC LIMIT %s OFFSET %s"
             cursor.execute(sql, (per_page, offset))
             deals = cursor.fetchall()
 
@@ -146,9 +147,32 @@ def add_keyword():
                 with conn.cursor() as cursor:
                     # 중복 키워드 체크
                     cursor.execute("SELECT * FROM keywords WHERE user_id = %s AND keyword = %s", (current_user.id, keyword))
-                    if not cursor.fetchone():
-                        cursor.execute("INSERT INTO keywords (user_id, keyword) VALUES (%s, %s)", (current_user.id, keyword))
-                        conn.commit()
+                    if cursor.fetchone():
+                        flash('이미 등록된 키워드입니다.')
+                        return redirect(url_for('my_hotdeal.index'))
+
+                    # 키워드 저장
+                    cursor.execute("insert into keywords (user_id, keyword) values (%s, %s)", (current_user.id, keyword))
+                    new_keyword_id = cursor.lastrowid # 추가된 키워드의 id 가져오기
+
+                    # 기존 모든 핫딜과 새 키워드 매칭 시도
+                    cursor.execute("select deal_id, title from deal_summary")
+                    all_deals = cursor.fetchall()
+
+                    for deal in all_deals:
+                        if keyword.lower() in deal['title'].lower():
+                            cursor.execute(
+                                """
+                                insert ignore into matched_deals
+                                (user_id, deal_id, keyword_id) values (%s, %s, %s)
+                                """, (current_user.id, deal['deal_id'], new_keyword_id)
+                            )
+                    
+                    conn.commit()
+                    flash(f"'{keyword}' 키워드가 추가되었습니다.")
+            except Exception as e:
+                conn.rollback()
+                flash(f"키워드 추가 중 오류 발생: {e}")
             finally:
                 conn.close()
     return redirect(url_for('my_hotdeal.index'))
@@ -183,7 +207,7 @@ def matched_deals():
                 SELECT ds.*
                 FROM deal_summary ds
                 JOIN matched_deals md ON ds.deal_id = md.deal_id
-                WHERE md.user_id = %s
+                WHERE md.user_id = %s and md.is_deleted = FALSE
                 ORDER BY ds.posted_at DESC
             """
             cursor.execute(sql, (current_user.id,))
@@ -213,3 +237,94 @@ def matched_deals():
         register_form=register_form,
         login_form=login_form
     )
+
+@hotdeal_bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    form = EditProfileForm(obj=current_user) # 폼 안에 유저 정보 채우기
+
+    if form.validate_on_submit():
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                sql = """
+                    UPDATE users 
+                    SET name = %s, email = %s, phone = %s
+                    WHERE user_id = %s
+                """
+                cursor.execute(sql, (
+                    form.name.data,
+                    form.email.data,
+                    form.phone.data,
+                    current_user.id
+                ))
+                conn.commit()
+            flash('회원 정보가 수정되었습니다.')
+            return redirect(url_for('my_hotdeal.profile'))
+        except Exception as e:
+            conn.rollback()
+            flash(f'오류가 발생했습니다: {e}')
+        finally:
+            conn.close()
+    
+    return render_template('edit_profile.html', form=form)
+
+@hotdeal_bp.route('/admin/users')
+@login_required
+def admin_users():
+    if current_user.role != 'ADMIN':        # 관리자 권한 확인
+        abort(403)                          # 권한 없음 오류
+
+    conn = get_db_connection()
+    users = []
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("select * from users order by created_at desc")
+            users = cursor.fetchall()
+    finally:
+        conn.close()
+    
+    return render_template('admin_users.html', users=users)
+
+# 핫딜 삭제 (관리자 전용)
+@hotdeal_bp.route('/deal/delete/<int:deal_id>')
+@login_required
+def delete_deal(deal_id):
+    if current_user.role != 'ADMIN':
+        abort(403)
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("update deal_summary set is_deleted = TRUE WHERE deal_id = %s", (deal_id,))
+            cursor.execute("update matched_deals set is_deleted = TRUE WHERE deal_id = %s", (deal_id,))
+            conn.commit()
+        flash('핫딜이 삭제되었습니다.')
+    except Exception as e:
+        conn.rollback()
+        flash(f'삭제 중 오류 발생: {e}')
+    finally:
+        conn.close()
+
+    return redirect(request.referrer or url_for('my_hotdeal.index'))
+
+# 사용자 매칭 핫딜 삭제
+@hotdeal_bp.route('/matched/delete/<int:deal_id>')
+@login_required
+def delete_matched_deal(deal_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # 내 매칭 정보만 삭제 처리
+            cursor.execute(
+                "update matched_deals set is_deleted = true where deal_id = %s and user_id = %s",
+                (deal_id, current_user.id)
+            )
+            conn.commit()
+        flash('목록에서 삭제되었습니다.')
+    finally:
+        conn.close()
+    return redirect(url_for('my_hotdeal.matched_deals'))
+
+
+

@@ -10,14 +10,15 @@
     <!-- Font Awesome (아이콘) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f8f9fa; }
+        /* [수정] 배경색을 명도를 낮춘 회색 계열로 변경 */
+        body { background-color: #f1f3f5; }
         .card { border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
-        /* [수정] 카드 이미지 높이 축소 */
+        /* 카드 이미지 높이 */
         .deal-img { height: 150px; object-fit: cover; width: 100%; border-top-left-radius: 0.375rem; border-top-right-radius: 0.375rem; }
 
-        /* [수정] 카드 제목 높이 및 폰트 크기 조절 */
+        /* 카드 제목 높이 및 폰트 크기 조절 */
         .card-title { font-size: 0.9rem; height: 2.7em; overflow: hidden; }
         .card-body { padding: 0.8rem; }
 
@@ -43,7 +44,7 @@
             {% if current_user.is_authenticated %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('my_hotdeal.matched_deals') }}">
-                        <i class="fas fa-bell"></i>
+                        <i class="fas fa-bell fa-lg"></i>
                         {% if g.unread_notifications > 0 %}
                             <span class="badge bg-danger rounded-pill" style="position: relative; top: -10px; left: -5px;">
                                 {{ g.unread_notifications }}

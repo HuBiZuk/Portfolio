@@ -7,7 +7,6 @@
 {% block content %}
     <h4 class="mb-4"><i class="fas fa-bell text-primary"></i> 나의 매칭 핫딜 목록</h4>
 
-    <!-- [수정] row-cols-lg-4 추가 -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         {% if deals %}
             {% for deal in deals %}
@@ -46,7 +45,20 @@
                                     가격정보 없음
                                 {% endif %}
                             </span>
-                            <small class="text-muted"><i class="far fa-thumbs-up"></i> {{ deal.likes }}</small>
+
+                            <!-- [수정] z-index와 position 추가 -->
+                            <div style="position: relative; z-index: 10;">
+                                <small class="text-muted me-2"><i class="far fa-thumbs-up"></i> {{ deal.likes }}</small>
+
+                                {% if current_user.is_authenticated and current_user.role == 'ADMIN' %}
+                                    <a href="{{ url_for('my_hotdeal.delete_deal', deal_id=deal.deal_id) }}"
+                                       class="text-danger"
+                                       onclick="return confirm('정말 삭제하시겠습니까?');"
+                                       title="삭제">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>

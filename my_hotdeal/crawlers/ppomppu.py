@@ -56,14 +56,19 @@ def crawl_ppomppu():
 
                 # 가격
                 price = 0
-                price_spans = item.select('p span')
-                for span in price_spans:
-                    text = span.get_text(strip=True)
-                    if '원' in text:
-                        price_text = re.sub(r'[^0-9]', '', text)
-                        if price_text:
-                            price = int(price_text)
-                            break
+                ps = item.select('p')
+                for p in ps:
+                    spans = p.find_all('span', recursive=False)
+                    for span in spans:
+                        text = span.get_text(strip=True)
+
+                        # 원과 숫자가 포함되면
+                        if '원' in text and any(c.isdigit() for c in text):
+                            price_text = re.sub(r'[^0-9]', '', text)
+                            if price_text:
+                                price = int(price_text)
+                                break
+                    if price > 0: break
                 
                 if price == 0:
                     price = extract_price(title)

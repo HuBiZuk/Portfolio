@@ -22,4 +22,9 @@ class KeywordForm(FlaskForm):
     keyword = StringField('키워드', validators=[DataRequired()])
     submit = SubmitField('추가')
 
+class EditProfileForm(FlaskForm):
+    name = StringField('이름', validators=[DataRequired()])
+    email = StringField('이메일', validators=[DataRequired(), Email()])
+    phone = StringField('전화번호', validators=[DataRequired()])
+    submit = SubmitField('수정')
 

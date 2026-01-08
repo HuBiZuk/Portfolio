@@ -2,11 +2,11 @@ from flask_login import UserMixin
 from .database import get_db_connection
 
 class User(UserMixin):
-    def __init__(self, user_id, name, email, roll='USER'):
+    def __init__(self, user_id, name, email, role='USER'):
         self.id = user_id
         self.name = name
         self.email = email
-        self.roll = roll
+        self.role = role
 
     @staticmethod
     def get(user_id):
@@ -21,7 +21,7 @@ class User(UserMixin):
                         user_id=user_data['user_id'],
                         name=user_data['name'],
                         email=user_data['email'],
-                        roll=user_data['role']
+                        role=user_data['role']
                     )
         finally:
             conn.close()
